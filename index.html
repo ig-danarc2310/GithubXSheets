@@ -269,7 +269,6 @@
 
     <div class="sidebar-overlay" id="overlay"></div>
 
-    <!-- SIDEBAR -->
     <aside class="sidebar" id="sidebar">
         <div>
             <div class="sidebar-logo">
@@ -289,7 +288,6 @@
         </div>
     </aside>
 
-    <!-- MAIN CONTENT -->
     <main class="main-content">
         <div class="top-navbar">
             <button class="toggle-sidebar-btn" id="open-sidebar"><i class="fa-solid fa-bars"></i></button>
@@ -298,10 +296,9 @@
 
         <header class="content-header">
             <h1 id="main-title">Cuentas Pendientes: D´Sra Yesenia</h1>
-            <p>Sincronizado en tiempo real con la nube de Google</p>
+            <p>Sincronizado e interactivo con Google Sheets</p>
         </header>
 
-        <!-- INDICADORES -->
         <section class="metrics-grid">
             <div class="metric-card card-tot-deuda">
                 <div class="card-icon"><i class="fa-solid fa-file-invoice-dollar"></i></div>
@@ -327,7 +324,6 @@
         </section>
 
         <div class="workspace-grid">
-            <!-- COLUMNA IZQUIERDA -->
             <div class="left-column">
                 <section class="card">
                     <div class="card-header">
@@ -340,15 +336,15 @@
                     <div class="config-inputs">
                         <div class="form-group">
                             <label>Rango Cuotas</label>
-                            <input type="text" id="range-cuotas" value="Yesenia!A5:E8">
+                            <input type="text" id="range-cuotas" value="D. Pendientes!A5:E8">
                         </div>
                         <div class="form-group">
                             <label>Rango Abonos</label>
-                            <input type="text" id="range-abonos" value="Yesenia!A11:E35">
+                            <input type="text" id="range-abonos" value="D. Pendientes!A11:E35">
                         </div>
                     </div>
                     <button class="btn-submit" id="btn-sync-cloud">
-                        <i class="fa-solid fa-rotate"></i> Recargar de Google Sheets
+                        <i class="fa-solid fa-rotate"></i> Forzar Carga de Datos
                     </button>
                 </section>
 
@@ -380,12 +376,11 @@
                             <label>Monto (S/.)</label>
                             <input type="number" id="ins-monto" step="0.01" placeholder="0.00" required>
                         </div>
-                        <button type="submit" class="btn-submit" id="btn-envio">Enviar a Google Sheets</button>
+                        <button type="submit" class="btn-submit" id="btn-envio">Guardar en Google Sheets</button>
                     </form>
                 </section>
             </div>
 
-            <!-- COLUMNA DERECHA -->
             <section class="card tables-container">
                 <div>
                     <div class="table-title"><i class="fa-solid fa-gavel"></i> Cargos / Cuotas Establecidas</div>
@@ -427,15 +422,16 @@
     <script>
         const API_URL = "https://script.google.com/macros/s/AKfycbzu1Wb8yDXJj_0XKeIj6e2xnN6K6NSwWwDg2JxoLVC2EjVegmQChX9d1Pe5igMNM6BO/exec";
         
+        // Corregido el mapeo inicial para apuntar exactamente a la pestaña unificada "D. Pendientes" que usas
         const configMapeo = {
-            yesenia: { title: "D´Sra Yesenia", cuotasRange: "Yesenia!A5:E8", abonosRange: "Yesenia!A11:E35" },
-            rosa: { title: "D´Rosa", cuotasRange: "D_Rosa!A46:E83", abonosRange: "D_Rosa!A85:E90" },
-            juanca: { title: "D´Sr Juanca", cuotasRange: "Juanca!A4:E9", abonosRange: "Juanca!A12:E20" }
+            yesenia: { title: "D´Sra Yesenia", cuotasRange: "D. Pendientes!A5:E8", abonosRange: "D. Pendientes!A11:E35" },
+            rosa: { title: "D´Rosa", cuotasRange: "D. Pendientes!A46:E83", abonosRange: "D. Pendientes!A85:E90" },
+            juanca: { title: "D´Sr Juanca", cuotasRange: "D. Pendientes!A114:E119", abonosRange: "D. Pendientes!A121:E125" }
         };
 
         let activeDebtor = "yesenia";
 
-        // SIDEBAR RESPONSIVE
+        // SIDEBAR MENÚ MÓVIL
         const sidebar = document.getElementById('sidebar');
         const overlay = document.getElementById('overlay');
         document.getElementById('open-sidebar').addEventListener('click', () => { sidebar.classList.add('open'); overlay.classList.add('show'); });
@@ -443,20 +439,16 @@
         document.getElementById('close-sidebar').addEventListener('click', closeSidebar);
         overlay.addEventListener('click', closeSidebar);
 
-        // LIMPIEZA SEGURA DE NÚMEROS (Previene Crashes)
+        // FORMATEADOR DE NÚMEROS EVITA ERRORES DE TEXTO
         function parsearMontoSeguro(valor) {
             if (valor === undefined || valor === null) return 0;
             let str = String(valor).trim();
             if (!str || str === "-" || str === "S/." || str === "S/") return 0;
             
-            // Eliminar símbolos de moneda comunes
             str = str.replace(/[S\/\.\s]/g, '');
-            
-            // Reemplazar coma decimal europea/latina si existe
             if (str.includes(',') && !str.includes('.')) {
                 str = str.replace(',', '.');
             } else {
-                // Si usa comas como miles (1,000.00), las removemos
                 str = str.replace(/,/g, '');
             }
             
@@ -464,11 +456,11 @@
             return isNaN(num) ? 0 : num;
         }
 
-        // FETCH DESDE GOOGLE
+        // CARGA ASÍNCRONA DESDE LA API DE GOOGLE
         async function fetchDataFromSheets(range) {
             const sheetId = document.getElementById('sheet-id').value;
             try {
-                const response = await fetch(`${API_URL}?sheetId=${sheetId}&rangeName=${range}`);
+                const response = await fetch(`${API_URL}?sheetId=${sheetId}&rangeName=${encodeURIComponent(range)}`);
                 const res = await response.json();
                 return res.status === "success" ? res.data : [];
             } catch (err) {
@@ -477,7 +469,7 @@
             }
         }
 
-        // RE-CALCULO Y RENDERIZADO PRINCIPAL
+        // RENDERIZADOR COMPLETO DE TABLAS Y METRICAS
         async function syncDashboard() {
             document.getElementById('connection-status').innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Conectando...`;
             
@@ -498,35 +490,44 @@
                 fetchDataFromSheets(mapping.abonosRange)
             ]);
 
-            // Renderizar Cuotas
+            // Procesar Fila de Cuotas
             tCuotas.innerHTML = "";
             let totalDeuda = 0;
             if (dataCuotas && dataCuotas.length > 0) {
                 dataCuotas.forEach(row => {
-                    if(row && row.length >= 4 && row[0] && String(row[0]).trim() !== "-" && String(row[1]).trim() !== "Total") {
+                    if(row && row.length >= 4 && row[0] && String(row[0]).trim() !== "-" && !String(row[1]).toLowerCase().includes("total")) {
+                        // Mapeo flexible de columnas basado en tus capturas
+                        const nro = row[0];
+                        const detalle = row[1];
+                        const fecha = row[4] || row[2] || '-';
                         const montoValue = parsearMontoSeguro(row[3]);
+                        
                         totalDeuda += montoValue;
-                        tCuotas.innerHTML += `<tr><td>${row[0]}</td><td class="text-left" style="color:#fff;">${row[1]}</td><td>${row[4] || row[2] || '-'}</td><td class="text-right">S/.${montoValue.toFixed(2)}</td></tr>`;
+                        tCuotas.innerHTML += `<tr><td>${nro}</td><td class="text-left" style="color:#fff;">${detalle}</td><td>${fecha}</td><td class="text-right">S/.${montoValue.toFixed(2)}</td></tr>`;
                     }
                 });
             }
-            if(tCuotas.innerHTML === "") tCuotas.innerHTML = `<tr><td colspan="4" class="loading-text">Sin cuotas pendientes registradas.</td></tr>`;
+            if(tCuotas.innerHTML === "") tCuotas.innerHTML = `<tr><td colspan="4" class="loading-text">No se encontraron cuotas en este rango. Revisa el mapeo.</td></tr>`;
 
-            // Renderizar Abonos
+            // Procesar Fila de Abonos
             tAbonos.innerHTML = "";
             let totalAbonado = 0;
             if (dataAbonos && dataAbonos.length > 0) {
                 dataAbonos.forEach(row => {
                     if(row && row.length >= 3 && row[0] && String(row[0]).trim() !== "-" && !String(row[0]).toLowerCase().includes("total")) {
-                        const montoValue = parsearMontoSeguro(row[2]);
+                        const item = row[0];
+                        const medio = row[2] || row[1] || '-';
+                        const fecha = row[3] || row[2] || '-';
+                        const montoValue = parsearMontoSeguro(row[2] || row[3]);
+                        
                         totalAbonado += montoValue;
-                        tAbonos.innerHTML += `<tr><td>${row[0]}</td><td>${row[1] || '-'}</td><td>${row[3] || '-'}</td><td class="text-right" style="color:#fff;">S/.${montoValue.toFixed(2)}</td></tr>`;
+                        tAbonos.innerHTML += `<tr><td>${item}</td><td>${medio}</td><td>${fecha}</td><td class="text-right" style="color:#fff;">S/.${montoValue.toFixed(2)}</td></tr>`;
                     }
                 });
             }
-            if(tAbonos.innerHTML === "") tAbonos.innerHTML = `<tr><td colspan="4" class="loading-text">Sin abonos registrados en este rango.</td></tr>`;
+            if(tAbonos.innerHTML === "") tAbonos.innerHTML = `<tr><td colspan="4" class="loading-text">No se encontraron abonos en este rango.</td></tr>`;
 
-            // Actualizar KPIs
+            // Pintar KPIs en Pantalla
             document.getElementById('kpi-total-deuda').textContent = `S/.${totalDeuda.toFixed(2)}`;
             document.getElementById('kpi-total-abonado').textContent = `S/.${totalAbonado.toFixed(2)}`;
             
@@ -538,12 +539,12 @@
             document.getElementById('connection-status').innerHTML = `<i class="fa-solid fa-cloud-check" style="color:var(--text-green);"></i> Online`;
         }
 
-        // GUARDAR CAMBIOS (POST)
+        // ESCRITURA REAL EN GOOGLE SHEETS (Manejo optimizado de peticiones POST cruzadas)
         document.getElementById('debt-form').addEventListener('submit', async function(e) {
             e.preventDefault();
             const btn = document.getElementById('btn-envio');
             btn.disabled = true;
-            btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Guardando...`;
+            btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Guardando en la Nube...`;
 
             const tipo = document.getElementById('ins-tipo').value;
             const concepto = document.getElementById('ins-concepto').value;
@@ -556,34 +557,37 @@
             
             let rowData = [];
             let selectedRange = "";
+            
+            // Construimos la estructura de columnas exacta de tus tablas
             if(tipo === "cuota") {
                 selectedRange = mapping.cuotasRange;
-                rowData = ["", concepto, "", monto, fecha]; 
+                rowData = ["", concepto, "", monto, fecha]; // Deja libre la columna de index para que se guarde correlativo
             } else {
                 selectedRange = mapping.abonosRange;
                 rowData = ["", via, monto, fecha];
             }
 
             try {
+                // Hacemos el envío de datos en formato de texto plano estructurado para saltar la limitación CORS de GitHub Pages
                 await fetch(API_URL, {
                     method: "POST",
                     mode: "no-cors",
-                    headers: { "Content-Type": "application/json" },
+                    headers: { "Content-Type": "text/plain" },
                     body: JSON.stringify({ sheetId: sheetId, rangeName: selectedRange, rowData: rowData })
                 });
                 
                 this.reset();
-                setTimeout(syncDashboard, 1500);
+                // Espera prudente para que Google procese y renderice la fila antes de refrescar
+                setTimeout(syncDashboard, 2000);
             } catch(err) {
-                alert("Error al guardar en la nube");
+                alert("Error de red al intentar guardar datos");
                 console.error(err);
-            } finally {
                 btn.disabled = false;
-                btn.innerHTML = "Enviar a Google Sheets";
+                btn.innerHTML = "Guardar en Google Sheets";
             }
         });
 
-        // TABS NAVEGACIÓN
+        // NAVEGACIÓN ENTRE SECCIONES
         document.querySelectorAll('#debtor-menu li').forEach(li => {
             li.addEventListener('click', function(e) {
                 e.preventDefault();
@@ -595,11 +599,12 @@
             });
         });
 
+        // Detectores de cambios en los inputs de mapeo
         document.getElementById('range-cuotas').addEventListener('change', function() { configMapeo[activeDebtor].cuotasRange = this.value; });
         document.getElementById('range-abonos').addEventListener('change', function() { configMapeo[activeDebtor].abonosRange = this.value; });
         document.getElementById('btn-sync-cloud').addEventListener('click', syncDashboard);
 
-        // Inicialización automática al abrir la web
+        // Arranque inicial en vivo
         syncDashboard();
     </script>
 </body>
