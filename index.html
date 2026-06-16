@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fintech Manager Pro</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        /* --- VARIABLES DE COLOR (Inspiradas en tus hojas de cálculo) --- */
+        :root {
+            --bg-main: #000000;          /* Fondo negro puro */
+            --bg-card: #0d0d0d;          /* Fondo gris oscuro para paneles */
+            --border-fucsia: #ff00ff;    /* El característico borde fucsia/magenta */
+            --text-green: #00ff00;       /* Texto verde brillante/neón para datos */
+            --text-muted: #888888;       /* Texto gris para etiquetas secundarias */
+            --text-light: #ffffff;       /* Blanco para títulos principales */
+            --accent-purple: #2d003d;    /* Fondo sutil para cabeceras de tablas */
+        }
+
+        /* --- CONFIGURACIÓN GENERAL --- */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-main);
+            color: var(--text-light);
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* --- DISEÑO DE LA APLICACIÓN (LAYOUT) --- */
+        .dashboard-layout {
+            display: flex;
+            width: 100%;
+            height: 100vh;
+        }
+
+        /* Barra Lateral (Sidebar) */
+        .sidebar {
+            width: 260px;
+            background-color: var(--bg-card);
+            border-right: 1px solid #222;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 20px;
+        }
+
+        .sidebar-logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: var(--border-fucsia);
+            font-size: 1.1rem;
+            padding-bottom: 20px;
+            border-bottom: 1px solid #222;
+        }
+
+        .sidebar-nav ul {
+            list-style: none;
+            margin-top: 20px;
+        }
+
+        .sidebar-nav li {
+            margin-bottom: 10px;
+        }
+
+        .sidebar-nav a {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            color: var(--text-muted);
+            text-decoration: none;
+            padding: 12px 15px;
+            border-radius: 6px;
+            transition: all 0.3s ease;
+            font-size: 0.95rem;
+        }
+
+        .sidebar-nav li.active a, .sidebar-nav a:hover {
+            color: var(--text-light);
+            background-color: #1a1a1a;
+            border-left: 3px solid var(--border-fucsia);
+        }
+
+        .sidebar-footer {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            border-top: 1px solid #222;
+            padding-top: 15px;
+        }
+
+        .status-indicator {
+            width: 8px;
+            height: 8px;
+            background-color: var(--text-green);
+            border-radius: 50%;
+            box-shadow: 0
