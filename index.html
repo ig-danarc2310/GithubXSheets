@@ -33,7 +33,6 @@
             position: relative;
         }
 
-        /* BARRA LATERAL */
         .sidebar {
             width: 260px;
             background-color: var(--bg-card);
@@ -96,7 +95,6 @@
             padding-top: 15px;
         }
 
-        /* CONTENIDO PRINCIPAL */
         .main-content {
             flex: 1;
             padding: 25px;
@@ -106,7 +104,6 @@
             overflow-y: auto;
         }
 
-        /* NAVBAR SUPERIOR MÓVIL */
         .top-navbar {
             display: none;
             align-items: center;
@@ -129,7 +126,6 @@
         .content-header h1 { font-size: 1.6rem; }
         .content-header p { color: var(--text-muted); font-size: 0.9rem; }
 
-        /* TARJETAS DE MÉTRICAS */
         .metrics-grid {
             display: grid;
             grid-template-columns: repeat(3, 1fr);
@@ -164,7 +160,6 @@
         .metric-card h3 { font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase; }
         .metric-card .amount { font-size: 1.3rem; font-weight: bold; color: var(--text-green); margin-top: 3px; }
 
-        /* INTERFAZ EN COLUMNAS */
         .workspace-grid {
             display: grid;
             grid-template-columns: 1fr 2.2fr;
@@ -189,14 +184,12 @@
             align-items: center;
         }
 
-        /* CONFIGURACIÓN DE RANGOS */
         .config-inputs {
             display: grid;
             grid-template-columns: 1fr 1fr;
             gap: 10px;
         }
 
-        /* FORMULARIOS */
         .form-group {
             display: flex;
             flex-direction: column;
@@ -230,7 +223,6 @@
         .btn-submit:hover { background-color: var(--border-fucsia); color: #000; box-shadow: 0 0 10px var(--border-fucsia); }
         .btn-submit:disabled { border-color: #333; color: #555; cursor: not-allowed; background: none; box-shadow: none;}
 
-        /* TABLAS */
         .tables-container { display: flex; flex-direction: column; gap: 20px; }
         .table-wrapper { max-height: 250px; overflow-y: auto; border: 1px solid #222; border-radius: 4px; }
         .table-title { font-size: 0.9rem; font-weight: bold; margin-bottom: 8px; color: var(--border-fucsia); }
@@ -335,16 +327,16 @@
                     </div>
                     <div class="config-inputs">
                         <div class="form-group">
-                            <label>Rango Cuotas</label>
-                            <input type="text" id="range-cuotas" value="D. Pendientes!A5:E8">
+                            <label>Rango Cuotas (Col C a G)</label>
+                            <input type="text" id="range-cuotas" value="D. Pendientes!C5:G8">
                         </div>
                         <div class="form-group">
-                            <label>Rango Abonos</label>
-                            <input type="text" id="range-abonos" value="D. Pendientes!A11:E35">
+                            <label>Rango Abonos (Col C a G)</label>
+                            <input type="text" id="range-abonos" value="D. Pendientes!C11:G35">
                         </div>
                     </div>
                     <button class="btn-submit" id="btn-sync-cloud">
-                        <i class="fa-solid fa-rotate"></i> Forzar Carga de Datos
+                        <i class="fa-solid fa-rotate"></i> Recargar de Google Sheets
                     </button>
                 </section>
 
@@ -422,16 +414,15 @@
     <script>
         const API_URL = "https://script.google.com/macros/s/AKfycbzu1Wb8yDXJj_0XKeIj6e2xnN6K6NSwWwDg2JxoLVC2EjVegmQChX9d1Pe5igMNM6BO/exec";
         
-        // Corregido el mapeo inicial para apuntar exactamente a la pestaña unificada "D. Pendientes" que usas
+        // Mapeo exacto apuntando de la columna C a la G de la pestaña "D. Pendientes"
         const configMapeo = {
-            yesenia: { title: "D´Sra Yesenia", cuotasRange: "D. Pendientes!A5:E8", abonosRange: "D. Pendientes!A11:E35" },
-            rosa: { title: "D´Rosa", cuotasRange: "D. Pendientes!A46:E83", abonosRange: "D. Pendientes!A85:E90" },
-            juanca: { title: "D´Sr Juanca", cuotasRange: "D. Pendientes!A114:E119", abonosRange: "D. Pendientes!A121:E125" }
+            yesenia: { title: "D´Sra Yesenia", cuotasRange: "D. Pendientes!C5:G8", abonosRange: "D. Pendientes!C11:G35" },
+            rosa: { title: "D´Rosa", cuotasRange: "D. Pendientes!C46:G111", abonosRange: "D. Pendientes!C114:G119" },
+            juanca: { title: "D´Sr Juanca", cuotasRange: "D. Pendientes!C128:G133", abonosRange: "D. Pendientes!C135:G140" }
         };
 
         let activeDebtor = "yesenia";
 
-        // SIDEBAR MENÚ MÓVIL
         const sidebar = document.getElementById('sidebar');
         const overlay = document.getElementById('overlay');
         document.getElementById('open-sidebar').addEventListener('click', () => { sidebar.classList.add('open'); overlay.classList.add('show'); });
@@ -439,24 +430,22 @@
         document.getElementById('close-sidebar').addEventListener('click', closeSidebar);
         overlay.addEventListener('click', closeSidebar);
 
-        // FORMATEADOR DE NÚMEROS EVITA ERRORES DE TEXTO
         function parsearMontoSeguro(valor) {
             if (valor === undefined || valor === null) return 0;
             let str = String(valor).trim();
-            if (!str || str === "-" || str === "S/." || str === "S/") return 0;
+            if (!str || str === "-" || str.includes("S/.") || str === "S/") return 0;
             
-            str = str.replace(/[S\/\.\s]/g, '');
-            if (str.includes(',') && !str.includes('.')) {
-                str = str.replace(',', '.');
-            } else {
-                str = str.replace(/,/g, '');
-            }
+            str = str.replace(/[S\/\.\s,]/g, '');
             
             let num = parseFloat(str);
+            // Si el formato vino como 12900 en lugar de 129.00 por la eliminación de puntos
+            if (String(valor).includes('.') || String(valor).includes(',')) {
+                // Mantener el parseo regular si tenía separador explícito
+                num = parseFloat(String(valor).replace(/[S\/\s]/g, '').replace(',', '.'));
+            }
             return isNaN(num) ? 0 : num;
         }
 
-        // CARGA ASÍNCRONA DESDE LA API DE GOOGLE
         async function fetchDataFromSheets(range) {
             const sheetId = document.getElementById('sheet-id').value;
             try {
@@ -469,7 +458,6 @@
             }
         }
 
-        // RENDERIZADOR COMPLETO DE TABLAS Y METRICAS
         async function syncDashboard() {
             document.getElementById('connection-status').innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Conectando...`;
             
@@ -490,44 +478,47 @@
                 fetchDataFromSheets(mapping.abonosRange)
             ]);
 
-            // Procesar Fila de Cuotas
+            // Renderizar Bloque Cuotas (Columnas C a G mapeadas como index 0 a 4)
             tCuotas.innerHTML = "";
             let totalDeuda = 0;
             if (dataCuotas && dataCuotas.length > 0) {
                 dataCuotas.forEach(row => {
-                    if(row && row.length >= 4 && row[0] && String(row[0]).trim() !== "-" && !String(row[1]).toLowerCase().includes("total")) {
-                        // Mapeo flexible de columnas basado en tus capturas
-                        const nro = row[0];
-                        const detalle = row[1];
-                        const fecha = row[4] || row[2] || '-';
-                        const montoValue = parsearMontoSeguro(row[3]);
+                    if(row && row.length >= 3 && row[0] && String(row[0]).trim() !== "" && String(row[0]).trim() !== "-" && !String(row[1]).toLowerCase().includes("total")) {
+                        const nro = row[0];        // Col C
+                        const detalle = row[1];    // Col D
+                        const fecha = row[3] || '-'; // Col F
+                        const montoValue = parsearMontoSeguro(row[4]); // Col G
                         
-                        totalDeuda += montoValue;
-                        tCuotas.innerHTML += `<tr><td>${nro}</td><td class="text-left" style="color:#fff;">${detalle}</td><td>${fecha}</td><td class="text-right">S/.${montoValue.toFixed(2)}</td></tr>`;
+                        if (montoValue > 0) {
+                            totalDeuda += montoValue;
+                            tCuotas.innerHTML += `<tr><td>${nro}</td><td class="text-left" style="color:#fff;">${detalle}</td><td>${fecha}</td><td class="text-right">S/.${montoValue.toFixed(2)}</td></tr>`;
+                        }
                     }
                 });
             }
-            if(tCuotas.innerHTML === "") tCuotas.innerHTML = `<tr><td colspan="4" class="loading-text">No se encontraron cuotas en este rango. Revisa el mapeo.</td></tr>`;
+            if(tCuotas.innerHTML === "") tCuotas.innerHTML = `<tr><td colspan="4" class="loading-text">No hay cuotas en este rango o el formato no coincide.</td></tr>`;
 
-            // Procesar Fila de Abonos
+            // Renderizar Bloque Abonos (Columnas C a G mapeadas como index 0 a 4)
             tAbonos.innerHTML = "";
             let totalAbonado = 0;
             if (dataAbonos && dataAbonos.length > 0) {
                 dataAbonos.forEach(row => {
-                    if(row && row.length >= 3 && row[0] && String(row[0]).trim() !== "-" && !String(row[0]).toLowerCase().includes("total")) {
-                        const item = row[0];
-                        const medio = row[2] || row[1] || '-';
-                        const fecha = row[3] || row[2] || '-';
-                        const montoValue = parsearMontoSeguro(row[2] || row[3]);
+                    if(row && row.length >= 3 && row[0] && String(row[0]).trim() !== "" && String(row[0]).trim() !== "-" && !String(row[1]).toLowerCase().includes("total") && !String(row[0]).toLowerCase().includes("total")) {
+                        const item = row[0];       // Col C
+                        const medio = row[2] || row[1] || '-'; // Col E o D
+                        const fecha = row[3] || '-'; // Col F
+                        const montoValue = parsearMontoSeguro(row[4] || row[2]); // Col G o E según el bloque
                         
-                        totalAbonado += montoValue;
-                        tAbonos.innerHTML += `<tr><td>${item}</td><td>${medio}</td><td>${fecha}</td><td class="text-right" style="color:#fff;">S/.${montoValue.toFixed(2)}</td></tr>`;
+                        if (montoValue > 0) {
+                            totalAbonado += montoValue;
+                            tAbonos.innerHTML += `<tr><td>${item}</td><td>${medio}</td><td>${fecha}</td><td class="text-right" style="color:#fff;">S/.${montoValue.toFixed(2)}</td></tr>`;
+                        }
                     }
                 });
             }
-            if(tAbonos.innerHTML === "") tAbonos.innerHTML = `<tr><td colspan="4" class="loading-text">No se encontraron abonos en este rango.</td></tr>`;
+            if(tAbonos.innerHTML === "") tAbonos.innerHTML = `<tr><td colspan="4" class="loading-text">No hay abonos en este rango.</td></tr>`;
 
-            // Pintar KPIs en Pantalla
+            // Pintar KPIs calculados
             document.getElementById('kpi-total-deuda').textContent = `S/.${totalDeuda.toFixed(2)}`;
             document.getElementById('kpi-total-abonado').textContent = `S/.${totalAbonado.toFixed(2)}`;
             
@@ -539,12 +530,12 @@
             document.getElementById('connection-status').innerHTML = `<i class="fa-solid fa-cloud-check" style="color:var(--text-green);"></i> Online`;
         }
 
-        // ESCRITURA REAL EN GOOGLE SHEETS (Manejo optimizado de peticiones POST cruzadas)
+        // GUARDAR DATOS (POST CON ALINEACIÓN DE COLUMNAS C A G)
         document.getElementById('debt-form').addEventListener('submit', async function(e) {
             e.preventDefault();
             const btn = document.getElementById('btn-envio');
             btn.disabled = true;
-            btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Guardando en la Nube...`;
+            btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Guardando...`;
 
             const tipo = document.getElementById('ins-tipo').value;
             const concepto = document.getElementById('ins-concepto').value;
@@ -558,17 +549,16 @@
             let rowData = [];
             let selectedRange = "";
             
-            // Construimos la estructura de columnas exacta de tus tablas
+            // Empujamos celdas vacías al inicio de rowData para saltar las columnas A y B en tu Sheets
             if(tipo === "cuota") {
                 selectedRange = mapping.cuotasRange;
-                rowData = ["", concepto, "", monto, fecha]; // Deja libre la columna de index para que se guarde correlativo
+                rowData = ["", "", "", concepto, via, fecha, monto]; // Las 3 primeras vacías corresponden a Cols A, B y C vacías/auto
             } else {
                 selectedRange = mapping.abonosRange;
-                rowData = ["", via, monto, fecha];
+                rowData = ["", "", "", via, "", fecha, monto];
             }
 
             try {
-                // Hacemos el envío de datos en formato de texto plano estructurado para saltar la limitación CORS de GitHub Pages
                 await fetch(API_URL, {
                     method: "POST",
                     mode: "no-cors",
@@ -577,17 +567,15 @@
                 });
                 
                 this.reset();
-                // Espera prudente para que Google procese y renderice la fila antes de refrescar
                 setTimeout(syncDashboard, 2000);
             } catch(err) {
-                alert("Error de red al intentar guardar datos");
+                alert("Error al escribir datos en Google Sheets");
                 console.error(err);
                 btn.disabled = false;
                 btn.innerHTML = "Guardar en Google Sheets";
             }
         });
 
-        // NAVEGACIÓN ENTRE SECCIONES
         document.querySelectorAll('#debtor-menu li').forEach(li => {
             li.addEventListener('click', function(e) {
                 e.preventDefault();
@@ -599,12 +587,10 @@
             });
         });
 
-        // Detectores de cambios en los inputs de mapeo
         document.getElementById('range-cuotas').addEventListener('change', function() { configMapeo[activeDebtor].cuotasRange = this.value; });
         document.getElementById('range-abonos').addEventListener('change', function() { configMapeo[activeDebtor].abonosRange = this.value; });
         document.getElementById('btn-sync-cloud').addEventListener('click', syncDashboard);
 
-        // Arranque inicial en vivo
         syncDashboard();
     </script>
 </body>
